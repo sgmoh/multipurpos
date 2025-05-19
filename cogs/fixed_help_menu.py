@@ -120,13 +120,15 @@ CATEGORY_COLORS = {
 
 # Category emojis for better visual identification
 CATEGORY_EMOJIS = {
-    "general": "🏠",
-    "moderation": "🛡️",
-    "levels": "⬆️",
-    "invites": "📨",
-    "messages": "💬",
-    "giveaways": "🎉",
-    "roles": "👑"
+    "general": "<:help:1373370856239267940>",
+    "moderation": "<:Multipurpose:1373371000271409416>",
+    "levels": "<:Clipboard:1373605336820220097>",
+    "invites": "<:Join:1373605236354056346>",
+    "messages": "<:Logs:1373372085866598550>",
+    "giveaways": "<:giveaway:1373607514112790610>",
+    "roles": "<:ReactionRole:1373607898730725469>",
+    "welcome": "<:joinleave:1373607445439709225>",
+    "tickets": "<:ticket:1373371061340606594>"
 }
 
 class CategorySelect(discord.ui.Select):
@@ -178,6 +180,18 @@ class CategorySelect(discord.ui.Select):
                 description="Self-assignable reaction roles",
                 emoji=CATEGORY_EMOJIS["roles"],
                 value="roles"
+            ),
+            discord.SelectOption(
+                label="Welcome",
+                description="Welcome messages for new members",
+                emoji=CATEGORY_EMOJIS["welcome"],
+                value="welcome"
+            ),
+            discord.SelectOption(
+                label="Tickets",
+                description="Support ticket system",
+                emoji=CATEGORY_EMOJIS["tickets"],
+                value="tickets"
             )
         ]
         
@@ -201,7 +215,7 @@ class CategorySelect(discord.ui.Select):
         # Create embed for the selected category
         embed = discord.Embed(
             title=f"{emoji} {category.title()} Commands",
-            description=f"Use `{CONFIG['prefix']}help <command>` for more details on a command.",
+            description=f"Use {CONFIG['prefix']}help <command> for more details on a command.",
             color=color
         )
         
@@ -213,16 +227,7 @@ class CategorySelect(discord.ui.Select):
             for cmd_name, cmd_info in commands.items():
                 command_list.append(f"`{CONFIG['prefix']}{cmd_name}` - {cmd_info['description']}")
             
-            embed.add_field(name="Available Commands:", value="\n".join(command_list), inline=False)
-            
-            # Add example usage for common commands (top 2 commands)
-            examples = []
-            for i, (cmd_name, cmd_info) in enumerate(commands.items()):
-                if i < 2:  # Only show top 2 examples
-                    examples.append(f"`{CONFIG['prefix']}{cmd_info['usage']}`")
-            
-            if examples:
-                embed.add_field(name="Usage Examples:", value="\n".join(examples), inline=False)
+            embed.description += "\n\n" + "\n".join(command_list)
         else:
             # Safely update description
             if embed.description:
@@ -231,15 +236,8 @@ class CategorySelect(discord.ui.Select):
                 embed.description = "No commands available in this category."
         
         # Add footer
-        embed.set_footer(text=f"Created by gh_sman • {len(commands)} commands in this category", 
-                         icon_url=self.bot.user.display_avatar.url)
-        
-        # Maintain consistent GIF sizing by using the same URL for category pages
-        if CONFIG['placeholders']['gif_url']:
-            embed.set_image(url=CONFIG['placeholders']['gif_url'])
-        
-        # Set thumbnail for additional context
-        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+        embed.set_footer(text="Created by gh_sman", 
+                        icon_url=self.bot.user.display_avatar.url)
         
         await interaction.response.edit_message(embed=embed, view=self.view)
 
@@ -298,32 +296,15 @@ class HelpView(discord.ui.View):
         """Create the main help menu embed"""
         embed = discord.Embed(
             title="Bot Help Menu",
-            description=f"Created by gh_sman\nMy prefix is `{CONFIG['prefix']}`\nUse the dropdown menu below to browse commands.",
+            description=f"Created by gh_sman\nMy prefix is {CONFIG['prefix']}\nUse the dropdown menu below to browse commands.",
             color=CONFIG['colors']['default']
         )
         
-        # Add categories list for quick reference
-        categories = []
-        for category, emoji in CATEGORY_EMOJIS.items():
-            command_count = len(COMMANDS_INFO.get(category, {}))
-            categories.append(f"{emoji} **{category.title()}** ({command_count} commands)")
-        
-        if categories:
-            embed.add_field(
-                name="Command Categories:",
-                value="\n".join(categories),
-                inline=False
-            )
-        
-        # Add footer with stats
-        total_commands = sum(len(cmds) for cmds in COMMANDS_INFO.values())
+        # Set footer with bot avatar
         embed.set_footer(
-            text=f"A powerful multipurpose bot • {total_commands} total commands", 
+            text="Created by gh_sman", 
             icon_url=self.bot.user.display_avatar.url
         )
-        
-        # Add thumbnail for consistent sizing
-        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         
         return embed
 
@@ -337,8 +318,6 @@ class FixedHelpMenu(commands.Cog):
     @commands.hybrid_command(name="help", description="Shows the help menu with interactive dropdown")
     async def help_command(self, ctx, command=None):
         """Show the help menu with interactive dropdown"""
-        global HELP_BANNER_FILE
-        
         if command is not None:
             # Show help for a specific command
             await self.show_command_help(ctx, command)
@@ -348,30 +327,8 @@ class FixedHelpMenu(commands.Cog):
         view = HelpView(self.bot)
         embed = await view.create_home_embed()
         
-        # Try to use the GIF banner if available
-        try:
-            gif_path = os.path.join("assets", "images", "help_banner.gif")
-            if os.path.exists(gif_path) and os.path.getsize(gif_path) > 0:
-                # Load the banner only once to keep consistent size
-                file = discord.File(gif_path, filename="help_banner.gif")
-                embed.set_image(url="attachment://help_banner.gif")
-                message = await ctx.send(file=file, embed=embed, view=view)
-                
-                # Store the file URL for future reference
-                for attachment in message.attachments:
-                    if attachment.filename == "help_banner.gif":
-                        # Update the config so all embeds use this exact URL
-                        CONFIG['placeholders']['gif_url'] = attachment.url
-                        logger.info(f"Successfully loaded help banner GIF with URL: {attachment.url}")
-                        break
-            else:
-                # Fallback to URL
-                embed.set_image(url=CONFIG['placeholders']['gif_url'])
-                await ctx.send(embed=embed, view=view)
-        except Exception as e:
-            logger.error(f"Error loading help banner GIF: {e}")
-            embed.set_image(url=CONFIG['placeholders']['gif_url'])
-            await ctx.send(embed=embed, view=view)
+        # Simple help menu with no GIF, just the dropdown
+        await ctx.send(embed=embed, view=view)
     
     async def show_command_help(self, ctx, command_name):
         """Show detailed help for a specific command"""
