@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from discord.ui import Select, View
 import logging
+import os
 from typing import Dict, List, Optional
 
 from config import CONFIG
@@ -9,7 +10,7 @@ from utils.embed_creator import EmbedCreator
 
 logger = logging.getLogger('discord_bot')
 
-# Command information for the help menu
+# Command information for the help menu - same as in help_commands.py but with compact display
 COMMANDS_INFO = {
     "general": {
         "help": {
@@ -103,7 +104,9 @@ COMMANDS_INFO = {
     }
 }
 
-class HelpCommandDropdown(Select):
+class HelpDropdown(discord.ui.Select):
+    """Dropdown menu for selecting command categories"""
+    
     def __init__(self, bot):
         self.bot = bot
         
@@ -164,21 +167,20 @@ class HelpCommandDropdown(Select):
     async def callback(self, interaction: discord.Interaction):
         """Handles the dropdown selection."""
         selected_category = self.values[0]
-        embed = await self.create_category_embed(selected_category)
-        await interaction.response.edit_message(embed=embed, view=self.view)
-    
-    async def create_category_embed(self, category):
-        """Create an embed for the selected category.
         
-        Args:
-            category (str): The selected category
-            
-        Returns:
-            discord.Embed: The category embed
-        """
-        commands_info = COMMANDS_INFO.get(category, {})
+        # Get category color
+        category_colors = {
+            "general": 0x7289DA,    # Discord Blue
+            "moderation": 0xE74C3C,  # Red
+            "levels": 0x2ECC71,     # Green
+            "invites": 0x3498DB,    # Blue
+            "messages": 0x9B59B6,   # Purple
+            "giveaways": 0xF1C40F,  # Yellow
+            "roles": 0xE67E22      # Orange
+        }
+        color = category_colors.get(selected_category, CONFIG['colors']['default'])
         
-        # Category emojis mapping
+        # Category emojis
         category_emojis = {
             "general": "🏠",
             "moderation": "🛡️",
@@ -188,73 +190,58 @@ class HelpCommandDropdown(Select):
             "giveaways": "🎉",
             "roles": "👑"
         }
+        emoji = category_emojis.get(selected_category, "ℹ️")
         
-        # Category colors
-        category_colors = {
-            "general": 0x7289DA,  # Discord Blue
-            "moderation": 0xE74C3C,  # Red
-            "levels": 0x2ECC71,  # Green
-            "invites": 0x3498DB,  # Blue
-            "messages": 0x9B59B6,  # Purple
-            "giveaways": 0xF1C40F,  # Yellow
-            "roles": 0xE67E22   # Orange
-        }
-        
-        emoji = category_emojis.get(category, "ℹ️")
-        color = category_colors.get(category, CONFIG['colors']['default'])
-        
+        # Create embed
         embed = discord.Embed(
-            title=f"{emoji} {category.title()} Commands",
+            title=f"{emoji} {selected_category.title()} Commands",
             description=f"Use `{CONFIG['prefix']}help <command>` for more details on a command.",
             color=color
         )
         
-        # Group commands into a more compact display
-        command_list = []
-        for cmd_name, cmd_info in commands_info.items():
-            command_list.append(f"`{CONFIG['prefix']}{cmd_name}` - {cmd_info['description']}")
+        # Get commands for the selected category
+        commands_info = COMMANDS_INFO.get(selected_category, {})
         
-        # Join commands with newlines for a cleaner look
-        if command_list:
-            embed.add_field(
-                name="Available Commands:",
-                value="\n".join(command_list),
-                inline=False
-            )
+        # Create a compact display with command groups
+        if commands_info:
+            # Group commands by common prefixes or keep them separate
+            command_list = []
+            for cmd_name, cmd_info in commands_info.items():
+                command_list.append(f"`{CONFIG['prefix']}{cmd_name}` - {cmd_info['description']}")
             
-            # Add usage examples section for the most important commands
-            example_commands = []
-            for cmd_name, cmd_info in list(commands_info.items())[:2]:  # Just show top 2 command examples
-                example_commands.append(f"`{CONFIG['prefix']}{cmd_info['usage']}`")
-            
-            if example_commands:
-                embed.add_field(
-                    name="Usage Examples:",
-                    value="\n".join(example_commands),
-                    inline=False
-                )
+            if command_list:
+                # Join with newlines for better readability
+                if embed.description:
+                    embed.description = f"{embed.description}\n\n{'\n'.join(command_list)}"
+                else:
+                    embed.description = "\n".join(command_list)
         else:
             if embed.description:
-                embed.description += "\n\nNo commands available in this category."
+                embed.description = f"{embed.description}\n\nNo commands available in this category."
             else:
                 embed.description = "No commands available in this category."
         
-        # Add placeholder for custom GIF or image
+        # Set thumbnail to show category icon (placeholder)
         embed.set_thumbnail(url=CONFIG['placeholders']['thumbnail_url'])
         
-        # Set footer with navigation hint
-        embed.set_footer(text="Created by gh_sman • Use the dropdown menu to navigate", 
+        # Set footer with attribution
+        embed.set_footer(text="Created by gh_sman • Use the dropdown to navigate", 
                          icon_url=self.bot.user.display_avatar.url)
         
-        return embed
+        # Update the message with the new embed
+        await interaction.response.edit_message(embed=embed)
 
-class HelpCommandView(View):
+class HelpView(discord.ui.View):
+    """View for the help menu containing the dropdown and buttons"""
+    
     def __init__(self, bot):
         super().__init__(timeout=180)  # 3 minute timeout
-        self.add_item(HelpCommandDropdown(bot))
-        
-        # Add a home button to return to main help menu
         self.bot = bot
+        
+        # Add the dropdown
+        self.add_item(HelpDropdown(bot))
+        
+        # Add a home button
         self.home_button = discord.ui.Button(
             style=discord.ButtonStyle.secondary,
             label="Home",
@@ -275,7 +262,7 @@ class HelpCommandView(View):
         )
         self.add_item(self.invite_button)
         
-        # Add support server button
+        # Add support button
         self.support_button = discord.ui.Button(
             style=discord.ButtonStyle.link,
             label="Support",
@@ -287,23 +274,26 @@ class HelpCommandView(View):
     
     async def home_button_callback(self, interaction: discord.Interaction):
         """Return to the main help menu"""
-        # Create main help embed
         embed = discord.Embed(
             title="Bot Help Menu",
             description=f"Created by gh_sman\nMy prefix is `{CONFIG['prefix']}`\nUse the dropdown menu below to browse commands.",
             color=CONFIG['colors']['default']
         )
         
-        # Try adding the GIF
+        # Set default values
+        file = None
+        
+        # Try adding the gif image
         try:
-            import os
-            if os.path.exists("assets/images/help_banner.gif"):
-                # We can't edit with a file attachment, so we'll use a URL
-                embed.set_image(url="https://media.discordapp.net/attachments/1234567890/1234567890/help_banner.gif")
+            gif_path = os.path.join("assets", "images", "help_banner.gif")
+            if os.path.exists(gif_path) and os.path.getsize(gif_path) > 0:
+                # We can't edit with a file attachment, so use fallback URL
+                embed.set_image(url=CONFIG['placeholders']['gif_url'])
             else:
-                embed.set_image(url="https://media.discordapp.net/attachments/1234567890/1234567890/help_banner.gif")
-        except:
-            pass
+                embed.set_image(url=CONFIG['placeholders']['gif_url'])
+        except Exception as e:
+            logger.error(f"Error with help banner: {e}")
+            embed.set_image(url=CONFIG['placeholders']['gif_url'])
         
         # Add bot's avatar as thumbnail
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
@@ -312,16 +302,18 @@ class HelpCommandView(View):
         embed.set_footer(text="A powerful, multipurpose bot designed to serve a wide range of Discord servers", 
                          icon_url=interaction.user.display_avatar.url)
         
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.response.edit_message(embed=embed)
 
-class HelpCommands(commands.Cog):
+class HelpMenu(commands.Cog):
+    """Help menu with interactive dropdown and buttons"""
+    
     def __init__(self, bot):
         self.bot = bot
-        logger.info("HelpCommands cog initialized")
+        logger.info("HelpMenu cog initialized")
     
-    @commands.hybrid_command(name="help", description="Shows the help menu with interactive dropdown.")
+    @commands.hybrid_command(name="help", description="Shows the help menu with interactive dropdown")
     async def help_command(self, ctx, command=None):
-        """Show the help menu with interactive dropdown."""
+        """Show the help menu with interactive dropdown"""
         if command is not None:
             # Show help for a specific command
             cmd = self.bot.get_command(command)
@@ -341,7 +333,6 @@ class HelpCommands(commands.Cog):
                 
                 embed.add_field(name="Usage", value=f"`{usage}`", inline=False)
                 
-                # Add examples if available
                 # Find command in our COMMANDS_INFO
                 for category, commands in COMMANDS_INFO.items():
                     if cmd.name in commands:
@@ -371,25 +362,20 @@ class HelpCommands(commands.Cog):
             color=CONFIG['colors']['default']
         )
         
-        # Set default values
+        # Add custom GIF using direct file attachment
         file = None
         has_file = False
-        
-        # Use direct attachment for the GIF
         try:
-            # Use direct path to the GIF file
-            gif_path = "assets/images/help_banner.gif"
+            gif_path = os.path.join("assets", "images", "help_banner.gif")
             if os.path.exists(gif_path) and os.path.getsize(gif_path) > 0:
                 file = discord.File(gif_path, filename="help_banner.gif")
                 embed.set_image(url="attachment://help_banner.gif")
                 has_file = True
                 logger.info(f"Successfully loaded help banner GIF from {gif_path}")
             else:
-                # If file doesn't exist or is empty, use the placeholder from config
                 embed.set_image(url=CONFIG['placeholders']['gif_url'])
-                logger.warning(f"Help banner GIF file not found at {gif_path} or is empty")
+                logger.warning(f"Help banner GIF not found at {gif_path} or is empty")
         except Exception as e:
-            # If there's an error, use the placeholder from config
             embed.set_image(url=CONFIG['placeholders']['gif_url'])
             logger.error(f"Error loading help banner GIF: {e}")
         
@@ -398,50 +384,16 @@ class HelpCommands(commands.Cog):
         
         # Add footer
         embed.set_footer(text="A powerful, multipurpose bot designed to serve a wide range of Discord servers", 
-                         icon_url=ctx.author.display_avatar.url)
+                       icon_url=ctx.author.display_avatar.url)
         
-        view = HelpCommandView(self.bot)
+        # Create the view with dropdown and buttons
+        view = HelpView(self.bot)
         
+        # Send the help menu
         if has_file:
             await ctx.send(file=file, embed=embed, view=view)
         else:
             await ctx.send(embed=embed, view=view)
-    
-    @commands.hybrid_command(name="ping", description="Check the bot's latency.")
-    async def ping(self, ctx):
-        """Check the bot's latency."""
-        latency = round(self.bot.latency * 1000)
-        embed = EmbedCreator.create_info_embed(
-            "Pong!",
-            f"Latency: {latency}ms"
-        )
-        await ctx.send(embed=embed)
-    
-    @commands.hybrid_command(name="info", description="Get information about the bot.")
-    async def info(self, ctx):
-        """Get information about the bot."""
-        embed = discord.Embed(
-            title=f"About {self.bot.user.name}",
-            description="Created by gh_sman - a powerful, multipurpose bot designed to serve a wide range of Discord servers.",
-            color=CONFIG['colors']['default']
-        )
-        
-        # Add bot statistics
-        embed.add_field(name="Servers", value=str(len(self.bot.guilds)), inline=True)
-        embed.add_field(name="Users", value=str(sum(g.member_count for g in self.bot.guilds)), inline=True)
-        embed.add_field(name="Prefix", value=f"`{CONFIG['prefix']}`", inline=True)
-        
-        # Add features
-        features = "**Features:**\n• Autorole\n• Giveaways\n• Leveling\n• Tickets\n• Invite Tracking\n• Message Stats\n• Reaction Roles"
-        embed.add_field(name="", value=features, inline=False)
-        
-        # Add bot avatar as thumbnail
-        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-        
-        # Add footer
-        embed.set_footer(text=f"Requested by {ctx.author.name}", icon_url=ctx.author.display_avatar.url)
-        
-        await ctx.send(embed=embed)
 
 async def setup(bot):
-    await bot.add_cog(HelpCommands(bot))
+    await bot.add_cog(HelpMenu(bot))
