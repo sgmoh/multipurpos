@@ -14,7 +14,8 @@ CONFIG = {
         'welcome',
         'moderation',
         'polls',
-        'utility'
+        'utility',
+        'role_menu'
     ],
     'colors': {
         'default': 0x5865F2,  # Discord Blurple
