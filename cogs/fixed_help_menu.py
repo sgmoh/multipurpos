@@ -269,7 +269,7 @@ class HelpView(discord.ui.View):
             label="Invite",
             emoji="📨",
             style=discord.ButtonStyle.link,
-            url="https://discord.com/api/oauth2/authorize?client_id=1234567890&permissions=8&scope=bot%20applications.commands",
+            url="https://discord.com/api/oauth2/authorize?client_id=1373013347590602944&permissions=1099511627775&scope=bot%20applications.commands",
             row=1
         )
         self.add_item(self.invite_button)
@@ -279,7 +279,7 @@ class HelpView(discord.ui.View):
             label="Support",
             emoji="❓",
             style=discord.ButtonStyle.link,
-            url="https://discord.gg/placeholder",
+            url="https://discord.gg/gazaguild",
             row=1
         )
         self.add_item(self.support_button)

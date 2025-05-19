@@ -24,6 +24,28 @@ class EmbedCreator:
         )
         
         return embed
+        
+    @staticmethod
+    def create_level_up_embed(user, level):
+        """Create a level-up notification embed
+        
+        Args:
+            user: The discord.Member who leveled up
+            level: The new level they reached
+            
+        Returns:
+            discord.Embed: The level-up embed
+        """
+        embed = discord.Embed(
+            title="⬆️ Level Up!",
+            description=f"**{user.mention}** Your Level Increased to **{level}**. Chat More!",
+            color=CONFIG['colors']['success']
+        )
+        
+        # Set user avatar as thumbnail
+        embed.set_thumbnail(url=user.display_avatar.url)
+        
+        return embed
     
     @staticmethod
     def create_success_embed(title, description):
@@ -79,5 +101,60 @@ class EmbedCreator:
             description=description,
             color=CONFIG['colors']['warning']
         )
+        
+        return embed
+        
+    @staticmethod
+    def create_basic_embed(title, description, color=None):
+        """Create a basic embed with the given information
+        
+        Args:
+            title: The embed title
+            description: The embed description
+            color: The embed color
+            
+        Returns:
+            discord.Embed: The created embed
+        """
+        return EmbedCreator.create_embed(title, description, color)
+        
+    @staticmethod
+    def create_leaderboard_embed(leaderboard_type, entries):
+        """Create a leaderboard embed
+        
+        Args:
+            leaderboard_type: The type of leaderboard (Levels, Messages, etc.)
+            entries: List of user entries to display
+            
+        Returns:
+            discord.Embed: The leaderboard embed
+        """
+        embed = discord.Embed(
+            title=f"{leaderboard_type} Leaderboard",
+            description="Top members in the server:",
+            color=CONFIG['colors']['default']
+        )
+        
+        # Add empty field to create space if needed
+        if len(entries) == 0:
+            embed.add_field(name="No data available", value="No members have earned XP yet.", inline=False)
+            return embed
+            
+        # Format leaderboard entries
+        value = ""
+        for i, entry in enumerate(entries):
+            medal = ""
+            if i == 0:
+                medal = "🥇"
+            elif i == 1:
+                medal = "🥈"
+            elif i == 2:
+                medal = "🥉"
+            else:
+                medal = f"{i+1}."
+                
+            value += f"{medal} <@{entry['user_id']}> - **{entry['count']}**\n"
+            
+        embed.add_field(name="Rankings", value=value, inline=False)
         
         return embed
