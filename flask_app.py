@@ -6,9 +6,5 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
-@app.route('/bot')
-def bot_info():
-    return "The Discord bot is configured and running in the background."
-
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)
