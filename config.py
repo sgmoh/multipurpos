@@ -11,7 +11,10 @@ CONFIG = {
         'invites',
         'messages',
         'reaction_roles',
-        'welcome'
+        'welcome',
+        'moderation',
+        'polls',
+        'utility'
     ],
     'colors': {
         'default': 0x5865F2,  # Discord Blurple
