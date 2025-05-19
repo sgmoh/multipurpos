@@ -199,6 +199,9 @@ class HelpDropdown(discord.ui.Select):
             color=color
         )
         
+        # Consistent image size across all categories - don't set image for category pages
+        # This will prevent the GIF from getting bigger
+        
         # Get commands for the selected category
         commands_info = COMMANDS_INFO.get(selected_category, {})
         
@@ -223,6 +226,9 @@ class HelpDropdown(discord.ui.Select):
         
         # Set thumbnail to show category icon (placeholder)
         embed.set_thumbnail(url=CONFIG['placeholders']['thumbnail_url'])
+        
+        # Keep the same dimensions as the main help menu
+        # embed.set_image(url=CONFIG['placeholders']['gif_url'])
         
         # Set footer with attribution
         embed.set_footer(text="Created by gh_sman • Use the dropdown to navigate", 

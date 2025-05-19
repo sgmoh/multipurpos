@@ -3,7 +3,7 @@
 CONFIG = {
     'prefix': '.',  # Bot command prefix
     'cogs': [
-        'help_menu',
+        'fixed_help_menu',
         'autorole',
         'giveaway',
         'levels',
