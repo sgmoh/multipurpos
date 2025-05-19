@@ -2,14 +2,10 @@ import discord
 from discord.ext import commands
 from discord.ui import Select, View
 import logging
-import os
 from typing import Dict, List, Optional
 
 from config import CONFIG
 from utils.embed_creator import EmbedCreator
-
-# Store file object as a class variable to maintain consistent sizing
-HELP_BANNER_FILE = None
 
 logger = logging.getLogger('discord_bot')
 
@@ -212,7 +208,7 @@ class CategorySelect(discord.ui.Select):
         color = CATEGORY_COLORS.get(category, CONFIG['colors']['default'])
         emoji = CATEGORY_EMOJIS.get(category, "ℹ️")
         
-        # Create embed for the selected category
+        # Create embed for the selected category - NO IMAGE
         embed = discord.Embed(
             title=f"{emoji} {category.title()} Commands",
             description=f"Use {CONFIG['prefix']}help <command> for more details on a command.",
@@ -227,7 +223,11 @@ class CategorySelect(discord.ui.Select):
             for cmd_name, cmd_info in commands.items():
                 command_list.append(f"`{CONFIG['prefix']}{cmd_name}` - {cmd_info['description']}")
             
-            embed.description += "\n\n" + "\n".join(command_list)
+            # Make sure description is not None before appending
+            if embed.description:
+                embed.description = f"{embed.description}\n\n" + "\n".join(command_list)
+            else:
+                embed.description = "\n".join(command_list)
         else:
             # Safely update description
             if embed.description:
@@ -238,6 +238,9 @@ class CategorySelect(discord.ui.Select):
         # Add footer
         embed.set_footer(text="Created by gh_sman", 
                         icon_url=self.bot.user.display_avatar.url)
+        
+        # Make sure we're not setting any images
+        embed.set_image(url=None)
         
         await interaction.response.edit_message(embed=embed, view=self.view)
 
@@ -285,11 +288,6 @@ class HelpView(discord.ui.View):
     async def home_callback(self, interaction: discord.Interaction):
         """Handle home button clicks"""
         embed = await self.create_home_embed()
-        
-        # Ensure consistent GIF size by using the same URL
-        if CONFIG['placeholders']['gif_url']:
-            embed.set_image(url=CONFIG['placeholders']['gif_url'])
-            
         await interaction.response.edit_message(embed=embed, view=self)
     
     async def create_home_embed(self):

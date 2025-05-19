@@ -3,7 +3,7 @@
 CONFIG = {
     'prefix': '.',  # Bot command prefix
     'cogs': [
-        'fixed_help_menu',
+        'fixed_help_menu',  # Only use this help menu
         'autorole',
         'giveaway',
         'simple_levels',
@@ -39,16 +39,9 @@ CONFIG = {
         'ticket': 60
     },
     'placeholders': {
-        'gif_url': 'https://i.imgur.com/qlOthc3.gif',
         'thumbnail_url': 'https://cdn.discordapp.com/emojis/964566755781476473.png'
     },
     'custom_gifs': {
-        'help_banner': 'assets/images/help_banner.gif',
-        'information': 'assets/images/information.gif',
-        'invites': 'assets/images/invites.gif',
-        'tickets': 'assets/images/tickets.gif',
-        'roles': 'assets/images/roles.gif',
-        'menu': 'assets/images/menu.gif',
         'welcome': 'assets/images/welcome.gif'
     },
     'levels': {
