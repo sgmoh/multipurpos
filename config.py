@@ -12,10 +12,12 @@ CONFIG = {
         'messages',
         'reaction_roles',
         'welcome',
-        'moderation',
         'polls',
         'utility',
-        'role_menu'
+        'role_menu',
+        'timeout',
+        'channel_management',
+        'direct_moderation'
     ],
     'colors': {
         'default': 0x5865F2,  # Discord Blurple
