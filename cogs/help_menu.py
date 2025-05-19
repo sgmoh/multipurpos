@@ -212,7 +212,7 @@ class HelpDropdown(discord.ui.Select):
             if command_list:
                 # Join with newlines for better readability
                 if embed.description:
-                    embed.description = f"{embed.description}\n\n{'\n'.join(command_list)}"
+                    embed.description = f"{embed.description}\n\n" + "\n".join(command_list)
                 else:
                     embed.description = "\n".join(command_list)
         else:
