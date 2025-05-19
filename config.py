@@ -10,7 +10,8 @@ CONFIG = {
         'tickets',
         'invites',
         'messages',
-        'reaction_roles'
+        'reaction_roles',
+        'welcome'
     ],
     'colors': {
         'default': 0x5865F2,  # Discord Blurple

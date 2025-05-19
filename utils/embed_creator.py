@@ -1,4 +1,5 @@
 import discord
+import datetime
 from config import CONFIG
 
 class EmbedCreator:
@@ -156,5 +157,38 @@ class EmbedCreator:
             value += f"{medal} <@{entry['user_id']}> - **{entry['count']}**\n"
             
         embed.add_field(name="Rankings", value=value, inline=False)
+        
+        return embed
+        
+    @staticmethod
+    def create_ticket_embed(user, ticket_number, guild_name):
+        """Create a ticket embed
+        
+        Args:
+            user: The user who created the ticket
+            ticket_number: The ticket number
+            guild_name: The name of the guild where the ticket was created
+            
+        Returns:
+            discord.Embed: The ticket embed
+        """
+        embed = discord.Embed(
+            title=f"Support Ticket #{ticket_number}",
+            description=f"Thank you for creating a support ticket! Staff will be with you shortly.",
+            color=CONFIG['colors']['info']
+        )
+        
+        embed.add_field(name="User", value=user.mention, inline=True)
+        embed.add_field(name="Server", value=guild_name, inline=True)
+        embed.add_field(name="Created", value=f"<t:{int(datetime.datetime.now().timestamp())}:R>", inline=True)
+        
+        embed.add_field(
+            name="Instructions",
+            value="Please describe your issue in detail, and a staff member will assist you soon.\n"
+                  "To close this ticket when resolved, use the `.close` command.",
+            inline=False
+        )
+        
+        embed.set_thumbnail(url=user.display_avatar.url)
         
         return embed
