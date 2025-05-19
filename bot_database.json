@@ -1,9 +1,25 @@
 {
     "autoroles": {},
-    "levels": {},
+    "levels": {
+        "1372685703716274186": {
+            "930131254106550333": {
+                "level": 0,
+                "xp": 63
+            }
+        }
+    },
     "tickets": {},
     "invites": {},
-    "message_counts": {},
+    "message_counts": {
+        "1372685703716274186": {
+            "930131254106550333": {
+                "all_time": 11,
+                "daily": {
+                    "2025-05-19": 11
+                }
+            }
+        }
+    },
     "reaction_roles": {},
     "giveaways": {}
 }

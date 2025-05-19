@@ -37,7 +37,7 @@ CONFIG = {
         'ticket': 60
     },
     'placeholders': {
-        'gif_url': 'https://cdn.discordapp.com/attachments/123456789/123456789/placeholder.gif',
-        'thumbnail_url': 'https://cdn.discordapp.com/attachments/123456789/123456789/placeholder.png'
+        'gif_url': 'https://cdn.discordapp.com/attachments/1234567890/1234567890/help_banner.gif',
+        'thumbnail_url': 'https://cdn.discordapp.com/attachments/1234567890/1234567890/category_icon.png'
     }
 }

@@ -271,22 +271,25 @@ class HelpCommands(commands.Cog):
         # Show the main help menu
         embed = discord.Embed(
             title="Bot Help Menu",
-            description=f"My prefix is `{CONFIG['prefix']}`\nUse the dropdown menu below to browse commands.",
+            description=f"Created by gh_sman\nMy prefix is `{CONFIG['prefix']}`\nUse the dropdown menu below to browse commands.",
             color=CONFIG['colors']['default']
         )
         
-        # Add placeholder for custom GIF
-        embed.set_image(url=CONFIG['placeholders']['gif_url'])
+        # Add custom GIF banner
+        # Using file attachment for the GIF to ensure it displays properly
+        file = discord.File("assets/images/help_banner.gif", filename="help_banner.gif")
+        embed.set_image(url="attachment://help_banner.gif")
         
         # Add bot's avatar as thumbnail
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         
         # Add footer
-        embed.set_footer(text=f"Requested by {ctx.author.name}", icon_url=ctx.author.display_avatar.url)
+        embed.set_footer(text="A powerful, multipurpose bot designed to serve a wide range of Discord servers", 
+                         icon_url=ctx.author.display_avatar.url)
         
         view = HelpCommandView(self.bot)
         
-        await ctx.send(embed=embed, view=view)
+        await ctx.send(file=file, embed=embed, view=view)
     
     @commands.hybrid_command(name="ping", description="Check the bot's latency.")
     async def ping(self, ctx):
@@ -303,7 +306,7 @@ class HelpCommands(commands.Cog):
         """Get information about the bot."""
         embed = discord.Embed(
             title=f"About {self.bot.user.name}",
-            description="A multipurpose Discord bot with custom UI elements, member management, and statistics tracking features.",
+            description="Created by gh_sman - a powerful, multipurpose bot designed to serve a wide range of Discord servers.",
             color=CONFIG['colors']['default']
         )
         
@@ -311,6 +314,10 @@ class HelpCommands(commands.Cog):
         embed.add_field(name="Servers", value=str(len(self.bot.guilds)), inline=True)
         embed.add_field(name="Users", value=str(sum(g.member_count for g in self.bot.guilds)), inline=True)
         embed.add_field(name="Prefix", value=f"`{CONFIG['prefix']}`", inline=True)
+        
+        # Add features
+        features = "**Features:**\n• Autorole\n• Giveaways\n• Leveling\n• Tickets\n• Invite Tracking\n• Message Stats\n• Reaction Roles"
+        embed.add_field(name="", value=features, inline=False)
         
         # Add bot avatar as thumbnail
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
