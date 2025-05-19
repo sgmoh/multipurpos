@@ -104,6 +104,25 @@ class EmbedCreator:
         )
         
         return embed
+
+    @staticmethod
+    def create_info_embed(title, description):
+        """Create an info-themed embed
+        
+        Args:
+            title: The embed title
+            description: The embed description
+            
+        Returns:
+            discord.Embed: The created embed
+        """
+        embed = EmbedCreator.create_embed(
+            title=f"{CONFIG['emojis']['info']} {title}",
+            description=description,
+            color=CONFIG['colors']['info']
+        )
+        
+        return embed
         
     @staticmethod
     def create_basic_embed(title, description, color=None):
@@ -190,5 +209,84 @@ class EmbedCreator:
         )
         
         embed.set_thumbnail(url=user.display_avatar.url)
+        
+        return embed
+        
+    @staticmethod
+    def create_message_stats_embed(user, message_count, user_rank=None, total_users=None):
+        """Create a message stats embed for a user
+        
+        Args:
+            user: The discord.Member to show stats for
+            message_count: The number of messages sent by the user
+            user_rank: The user's rank in the server (optional)
+            total_users: The total number of tracked users (optional)
+            
+        Returns:
+            discord.Embed: The message stats embed
+        """
+        embed = discord.Embed(
+            title=f"📊 Message Statistics for {user.display_name}",
+            description=f"{user.mention} has sent **{message_count}** messages in this server.",
+            color=CONFIG['colors']['info']
+        )
+        
+        # Set user avatar as thumbnail
+        embed.set_thumbnail(url=user.display_avatar.url)
+        
+        # Add rank if provided
+        if user_rank is not None and total_users is not None:
+            rank_text = f"#{user_rank} out of {total_users} members"
+            
+            # Add medal for top 3
+            if user_rank == 1:
+                rank_text = f"🥇 {rank_text}"
+            elif user_rank == 2:
+                rank_text = f"🥈 {rank_text}"
+            elif user_rank == 3:
+                rank_text = f"🥉 {rank_text}"
+                
+            embed.add_field(
+                name="Rank",
+                value=rank_text,
+                inline=True
+            )
+        
+        return embed
+        
+    @staticmethod
+    def create_reaction_role_embed(title, description, role_mappings):
+        """Create a reaction role embed
+        
+        Args:
+            title: The embed title
+            description: The embed description
+            role_mappings: Dictionary mapping emojis to role names
+            
+        Returns:
+            discord.Embed: The reaction role embed
+        """
+        embed = discord.Embed(
+            title=title,
+            description=description,
+            color=CONFIG['colors']['default']
+        )
+        
+        # Add reaction instructions
+        instructions = ""
+        for emoji, role_name in role_mappings.items():
+            instructions += f"{emoji} - {role_name}\n"
+            
+        embed.add_field(
+            name="Available Roles",
+            value=instructions,
+            inline=False
+        )
+        
+        embed.add_field(
+            name="Instructions",
+            value="React with the emoji for the role you want to receive or remove.",
+            inline=False
+        )
         
         return embed
