@@ -9,6 +9,8 @@ from utils.embed_creator import EmbedCreator
 
 logger = logging.getLogger('discord_bot')
 
+import asyncio
+
 class RoleDropdown(ui.Select):
     """Dropdown menu for role selection"""
     
@@ -46,6 +48,8 @@ class RoleDropdown(ui.Select):
         # Track added and removed roles
         added_roles = []
         removed_roles = []
+        unchanged_roles = []
+        missing_permissions = False
         
         for role_id, role_info in self.roles_data.items():
             role = guild.get_role(int(role_id))
@@ -59,25 +63,41 @@ class RoleDropdown(ui.Select):
                     try:
                         await member.add_roles(role)
                         added_roles.append(role.name)
-                    except:
-                        pass
+                    except Exception as e:
+                        missing_permissions = True
+                        logger.error(f"Failed to add role {role.name}: {e}")
+                else:
+                    unchanged_roles.append(f"{role.name} (already had)")
             else:
                 # Remove role if user has it
                 if role in member.roles:
                     try:
                         await member.remove_roles(role)
                         removed_roles.append(role.name)
-                    except:
-                        pass
+                    except Exception as e:
+                        missing_permissions = True
+                        logger.error(f"Failed to remove role {role.name}: {e}")
+                else:
+                    # Role was not selected and user doesn't have it - nothing to do
+                    pass
         
         # Create response message
         response = ""
+        
         if added_roles:
             response += f"✅ Added roles: {', '.join(added_roles)}\n"
+        
         if removed_roles:
             response += f"❌ Removed roles: {', '.join(removed_roles)}\n"
-        if not added_roles and not removed_roles:
-            response = "No role changes were made."
+        
+        if unchanged_roles:
+            response += f"ℹ️ Unchanged roles: {', '.join(unchanged_roles)}\n"
+        
+        if missing_permissions:
+            response += "⚠️ Some role changes could not be applied due to missing permissions.\n"
+            
+        if not added_roles and not removed_roles and not unchanged_roles:
+            response = "Please select at least one role from the dropdown menu."
             
         await interaction.followup.send(response, ephemeral=True)
 
@@ -180,11 +200,26 @@ class RoleMenu(commands.Cog):
     
     @rolemenu.command(name="create")
     @commands.has_permissions(manage_roles=True)
-    async def create_menu(self, ctx):
-        """Create a new role menu with dropdown"""
+    async def create_menu(self, ctx, channel: discord.TextChannel = None):
+        """Create a new role menu with dropdown
+        
+        Args:
+            channel: Optional channel to send the menu to (defaults to current channel)
+        """
+        # Determine the target channel
+        target_channel = channel or ctx.channel
+        
+        # Check bot permissions in the target channel
+        if not target_channel.permissions_for(ctx.guild.me).send_messages:
+            await ctx.send(embed=EmbedCreator.create_error_embed(
+                "Missing Permissions",
+                f"I don't have permission to send messages in {target_channel.mention}."
+            ))
+            return
+            
         # Start the role menu creation process
         embed = EmbedCreator.create_info_embed(
-            "Role Menu Setup (1/3)",
+            "Role Menu Setup (1/4)",
             "Please enter a title for your role menu, or type 'cancel' to abort."
         )
         
@@ -206,7 +241,7 @@ class RoleMenu(commands.Cog):
                 
             # Ask for description
             embed = EmbedCreator.create_info_embed(
-                "Role Menu Setup (2/3)",
+                "Role Menu Setup (2/4)",
                 "Please enter a description for your role menu, or type 'cancel' to abort."
             )
             
@@ -224,10 +259,27 @@ class RoleMenu(commands.Cog):
             if description.lower() == "cancel":
                 await ctx.send(embed=EmbedCreator.create_error_embed("Setup Cancelled", "Role menu creation has been cancelled."))
                 return
+            
+            # Ask about multiple selection
+            embed = EmbedCreator.create_info_embed(
+                "Role Menu Setup (3/4)",
+                "Should users be able to select multiple roles at once? (yes/no)"
+            )
+            
+            await ctx.send(embed=embed)
+            
+            # Wait for multiple selection response
+            multi_message = await self.bot.wait_for(
+                "message",
+                check=lambda m: m.author == ctx.author and m.channel == ctx.channel,
+                timeout=60.0
+            )
+            
+            allow_multiple = multi_message.content.lower() in ["yes", "y", "true", "1"]
                 
             # Ask for roles
             embed = EmbedCreator.create_info_embed(
-                "Role Menu Setup (3/3)",
+                "Role Menu Setup (4/4)",
                 "Now let's add some roles. For each role, send a message in this format:\n"
                 "@Role Description of the role\n\n"
                 "You can optionally include an emoji after the role mention:\n"
@@ -310,39 +362,62 @@ class RoleMenu(commands.Cog):
                 color=CONFIG['colors']['default']
             )
             
+            # Add instructions based on selection type
+            if allow_multiple:
+                instructions = "You can select multiple roles from the dropdown menu below."
+            else:
+                instructions = "Select a role from the dropdown menu below."
+                
             menu_embed.add_field(
                 name="Available Roles",
-                value="Use the dropdown menu below to add or remove roles.",
+                value=instructions,
                 inline=False
             )
             
-            # Create the view with the dropdown
+            # Create the view with the dropdown, handling single/multi selection
             view = RoleMenuView(roles_data)
             
-            # Send the menu
-            menu_message = await ctx.send(embed=menu_embed, view=view)
+            # Adjust max_values for the dropdown
+            if not allow_multiple:
+                for item in view.children:
+                    if isinstance(item, RoleDropdown):
+                        item.max_values = 1
             
-            # Save the menu to settings
-            guild_id = str(ctx.guild.id)
-            
-            if guild_id not in self.role_menus:
-                self.role_menus[guild_id] = {}
+            # Send the menu to the target channel
+            try:
+                menu_message = await target_channel.send(embed=menu_embed, view=view)
                 
-            self.role_menus[guild_id][str(menu_message.id)] = {
-                "title": title,
-                "description": description,
-                "roles": roles_data,
-                "channel_id": str(ctx.channel.id),
-                "author_id": str(ctx.author.id)
-            }
-            
-            self.save_settings()
-            
-            # Send confirmation
-            await ctx.send(embed=EmbedCreator.create_success_embed(
-                "Role Menu Created",
-                "Your role menu has been created! Users can now select roles from the dropdown menu."
-            ))
+                # Save the menu to settings
+                guild_id = str(ctx.guild.id)
+                
+                if guild_id not in self.role_menus:
+                    self.role_menus[guild_id] = {}
+                    
+                self.role_menus[guild_id][str(menu_message.id)] = {
+                    "title": title,
+                    "description": description,
+                    "roles": roles_data,
+                    "channel_id": str(target_channel.id),
+                    "author_id": str(ctx.author.id),
+                    "multiple": allow_multiple
+                }
+                
+                self.save_settings()
+                
+                # Send confirmation
+                success_message = f"Your role menu has been created in {target_channel.mention}!"
+                if target_channel != ctx.channel:
+                    success_message += f" [Jump to Message]({menu_message.jump_url})"
+                    
+                await ctx.send(embed=EmbedCreator.create_success_embed(
+                    "Role Menu Created",
+                    success_message
+                ))
+            except Exception as e:
+                await ctx.send(embed=EmbedCreator.create_error_embed(
+                    "Error",
+                    f"Failed to create role menu: {str(e)}"
+                ))
             
         except asyncio.TimeoutError:
             await ctx.send(embed=EmbedCreator.create_error_embed("Setup Timed Out", "You took too long to respond. Please try again."))

@@ -1,1 +1,17 @@
-{}
+{
+    "1372685703716274186": {
+        "1374019141865967719": {
+            "title": "Reaction Role",
+            "description": "fr",
+            "roles": {
+                "1373034735730819194": {
+                    "name": "Muted",
+                    "description": "fr",
+                    "emoji": "\ud83e\udd5f"
+                }
+            },
+            "channel_id": "1372685704240300084",
+            "author_id": "930131254106550333"
+        }
+    }
+}
