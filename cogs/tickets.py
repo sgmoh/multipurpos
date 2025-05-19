@@ -141,7 +141,25 @@ class Tickets(commands.Cog):
         """
         if option.lower() == "setup":
             # Create ticket embed and button
-            embed = EmbedCreator.create_ticket_embed()
+            embed = discord.Embed(
+                title="Support Tickets",
+                description="Need help? Click the button below to create a support ticket!",
+                color=CONFIG['colors']['default']
+            )
+            
+            # Try to use ticket GIF if available
+            try:
+                import os
+                gif_path = os.path.join("assets", "images", "tickets.gif")
+                if os.path.exists(gif_path) and os.path.getsize(gif_path) > 0:
+                    file = discord.File(gif_path, filename="tickets.gif")
+                    embed.set_image(url="attachment://tickets.gif")
+                    await ctx.send(file=file, embed=embed, view=TicketView())
+                    return
+            except Exception as e:
+                logger.error(f"Error loading ticket GIF: {e}")
+                
+            # If no GIF or error, send without GIF
             view = TicketView()
             
             # Send the ticket message
