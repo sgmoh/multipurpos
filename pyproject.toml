@@ -5,6 +5,7 @@ description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
     "asyncio>=3.4.3",
+    "discord-py-interactions>=5.14.0",
     "discord-py>=2.5.2",
     "email-validator>=2.2.0",
     "flask>=3.1.1",
@@ -13,4 +14,7 @@ dependencies = [
     "logging>=0.4.9.6",
     "psycopg2-binary>=2.9.10",
     "python-dotenv>=1.1.0",
+    "flask-login>=0.6.3",
+    "sqlalchemy>=2.0.41",
+    "werkzeug>=3.1.3",
 ]
